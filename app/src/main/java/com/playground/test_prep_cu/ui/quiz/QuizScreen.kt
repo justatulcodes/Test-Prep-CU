@@ -1,5 +1,6 @@
 package com.playground.test_prep_cu.ui.quiz
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.*
@@ -7,6 +8,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+
 
 /**
  * Quiz screen displaying questions and options
@@ -15,12 +20,25 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun QuizScreen(
     viewModel: QuizViewModel,
-    onQuizCompleted: () -> Unit
+    onQuizCompleted: () -> Unit,
+    onBackToUpload: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    // Navigate to results when quiz is completed
-    LaunchedEffect(uiState) {
+    // Handle back button press
+    BackHandler {
+        val shouldShowResults = viewModel.handleBackPress()
+        if (shouldShowResults) {
+            // Navigate to results for partial completion
+            onQuizCompleted()
+        } else {
+            // Navigate back to upload
+            onBackToUpload()
+        }
+    }
+    
+    // Navigate to results when quiz is completed normally
+    LaunchedEffect(key1 = uiState) {
         if (uiState is QuizUiState.Completed) {
             onQuizCompleted()
         }
@@ -89,7 +107,12 @@ private fun QuestionContent(
         // Progress indicator
         LinearProgressIndicator(
             progress = { state.questionNumber.toFloat() / state.totalQuestions },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.outlineVariant
         )
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -103,12 +126,19 @@ private fun QuestionContent(
         
         // Question statement
         Card(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            )
         ) {
             Text(
                 text = state.question.statement,
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(32.dp)
             )
         }
         
@@ -170,7 +200,8 @@ private fun QuestionContent(
         ) {
             Button(
                 onClick = onPrevious,
-                enabled = state.canGoPrevious
+                enabled = state.canGoPrevious,
+                shape = RoundedCornerShape(24.dp)
             ) {
                 Text("Previous")
             }
@@ -180,7 +211,8 @@ private fun QuestionContent(
                 // Show Submit Answer button
                 Button(
                     onClick = onSubmitAnswer,
-                    enabled = state.canSubmit
+                    enabled = state.canSubmit,
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     Text("Submit Answer")
                 }
@@ -189,14 +221,16 @@ private fun QuestionContent(
                 if (state.isLastQuestion) {
                     Button(
                         onClick = onSubmitQuiz,
-                        enabled = state.canGoNext
+                        enabled = state.canGoNext,
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Text("Submit Quiz")
                     }
                 } else {
                     Button(
                         onClick = onNext,
-                        enabled = state.canGoNext
+                        enabled = state.canGoNext,
+                        shape = RoundedCornerShape(24.dp)
                     ) {
                         Text("Next")
                     }
@@ -217,14 +251,13 @@ private fun OptionItemWithFeedback(
     val backgroundColor = when {
         isAnswerSubmitted && option.isCorrect -> MaterialTheme.colorScheme.primaryContainer
         isAnswerSubmitted && isSelected && !option.isCorrect -> MaterialTheme.colorScheme.errorContainer
-        isSelected && !isAnswerSubmitted -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.surface
     }
     
     val borderColor = when {
         isAnswerSubmitted && option.isCorrect -> MaterialTheme.colorScheme.primary
         isAnswerSubmitted && isSelected && !option.isCorrect -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.outline
+        else -> Color.Transparent
     }
     
     Card(
@@ -235,18 +268,19 @@ private fun OptionItemWithFeedback(
                 onClick = { if (!isAnswerSubmitted) onSelect() },
                 enabled = !isAnswerSubmitted
             ),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
+            containerColor = if (isSelected && !isAnswerSubmitted) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
         ),
         border = androidx.compose.foundation.BorderStroke(
-            width = if (isAnswerSubmitted && (option.isCorrect || isSelected)) 2.dp else 1.dp,
-            color = borderColor
+            width = if (isAnswerSubmitted && (option.isCorrect || isSelected)) 2.dp else if (isSelected) 4.dp else 2.dp,
+            color = if (isSelected && !isAnswerSubmitted) MaterialTheme.colorScheme.primary else borderColor
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (!isAnswerSubmitted) {

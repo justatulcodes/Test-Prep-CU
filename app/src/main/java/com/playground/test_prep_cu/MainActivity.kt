@@ -3,12 +3,12 @@ package com.playground.test_prep_cu
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.playground.test_prep_cu.data.preferences.QuizPreferences
 import com.playground.test_prep_cu.data.repository.QuizRepository
 import com.playground.test_prep_cu.navigation.AppNavHost
 import com.playground.test_prep_cu.ui.theme.TestPrepCUTheme
@@ -16,14 +16,15 @@ import com.playground.test_prep_cu.ui.theme.TestPrepCUTheme
 class MainActivity : ComponentActivity() {
     
     private lateinit var repository: QuizRepository
+    private lateinit var preferences: QuizPreferences
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize repository
+        // Initialize repository and preferences
         repository = QuizRepository(applicationContext)
+        preferences = QuizPreferences(applicationContext)
         
-        enableEdgeToEdge()
         setContent {
             TestPrepCUTheme {
                 Surface(
@@ -33,7 +34,8 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     AppNavHost(
                         navController = navController,
-                        repository = repository
+                        repository = repository,
+                        preferences = preferences
                     )
                 }
             }

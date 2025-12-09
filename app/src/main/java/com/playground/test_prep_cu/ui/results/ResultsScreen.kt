@@ -1,5 +1,6 @@
 package com.playground.test_prep_cu.ui.results
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,9 +17,16 @@ import androidx.compose.ui.unit.dp
 fun ResultsScreen(
     viewModel: ResultsViewModel,
     onReviewAnswers: () -> Unit,
-    onNewQuiz: () -> Unit
+    onNewQuiz: () -> Unit,
+    onBackToUpload: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Handle back button press to go to upload screen
+    BackHandler {
+        viewModel.resetQuiz()
+        onBackToUpload()
+    }
     
     Scaffold(
         topBar = {
@@ -81,27 +89,49 @@ private fun ResultsContent(
         
         // Score Card
         Card(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
                     text = "Your Score",
                     style = MaterialTheme.typography.titleMedium
                 )
                 
+                // Circular Progress
+                Box(contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = { 1f },
+                        modifier = Modifier.size(150.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        strokeWidth = 12.dp,
+                    )
+                    CircularProgressIndicator(
+                        progress = { state.score.percentage.toFloat() / 100f },
+                        modifier = Modifier.size(150.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 12.dp,
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${String.format("%.0f", state.score.percentage)}%",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.onSurface 
+                        )
+                    }
+                }
+
                 Text(
-                    text = "${state.score.correct}/${state.score.totalQuestions}",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                Text(
-                    text = "${String.format("%.1f", state.score.percentage)}%",
-                    style = MaterialTheme.typography.headlineSmall
+                    text = "${state.score.correct} / ${state.score.totalQuestions} Questions Correct",
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         }
@@ -114,10 +144,19 @@ private fun ResultsContent(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                MetricRow("Questions Attempted", state.score.totalQuestions.toString())
                 MetricRow("Correct Answers", state.score.correct.toString())
                 MetricRow("Incorrect Answers", state.score.incorrect.toString())
-                MetricRow("Total Marks Earned", String.format("%.1f", state.score.totalMarksEarned))
-                MetricRow("Total Marks", state.totalMarks.toString())
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                MetricRow("Pass Percentage", "60%") // Typical passing grade
+                MetricRow("Your Percentage", String.format("%.1f%%", state.score.percentage))
+                val passed = state.score.percentage >= 60
+                MetricRow(
+                    "Status", 
+                    if (passed) "✓ Passed" else "✗ Failed"
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                MetricRow("Total Marks Earned", String.format("%.1f / %d", state.score.totalMarksEarned, state.totalMarks))
                 MetricRow("Time Taken", formatTime(state.timeTaken))
             }
         }
@@ -128,7 +167,8 @@ private fun ResultsContent(
         if (state.reviewAllowed) {
             Button(
                 onClick = onReviewAnswers,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
             ) {
                 Text("Review Answers")
             }
@@ -136,7 +176,8 @@ private fun ResultsContent(
         
         OutlinedButton(
             onClick = onNewQuiz,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
         ) {
             Text("Start New Quiz")
         }

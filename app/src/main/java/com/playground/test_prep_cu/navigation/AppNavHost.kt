@@ -1,10 +1,10 @@
 package com.playground.test_prep_cu.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.playground.test_prep_cu.data.preferences.QuizPreferences
 import com.playground.test_prep_cu.data.repository.QuizRepository
 import com.playground.test_prep_cu.ui.quiz.QuizScreen
 import com.playground.test_prep_cu.ui.quiz.QuizViewModel
@@ -16,19 +16,20 @@ import com.playground.test_prep_cu.ui.upload.UploadScreen
 import com.playground.test_prep_cu.ui.upload.UploadViewModel
 
 /**
- * Main navigation host for the app
+ * Main navigation host
  */
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    repository: QuizRepository
+    repository: QuizRepository,
+    preferences: QuizPreferences
 ) {
     NavHost(
         navController = navController,
         startDestination = Screen.Upload.route
     ) {
         composable(Screen.Upload.route) {
-            val viewModel = UploadViewModel(repository)
+            val viewModel = UploadViewModel(repository, preferences)
             UploadScreen(
                 viewModel = viewModel,
                 onQuizLoaded = {
@@ -47,6 +48,11 @@ fun AppNavHost(
                     navController.navigate(Screen.Results.route) {
                         popUpTo(Screen.Quiz.route) { inclusive = true }
                     }
+                },
+                onBackToUpload = {
+                    navController.navigate(Screen.Upload.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }
@@ -59,6 +65,11 @@ fun AppNavHost(
                     navController.navigate(Screen.Review.route)
                 },
                 onNewQuiz = {
+                    navController.navigate(Screen.Upload.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBackToUpload = {
                     navController.navigate(Screen.Upload.route) {
                         popUpTo(0) { inclusive = true }
                     }

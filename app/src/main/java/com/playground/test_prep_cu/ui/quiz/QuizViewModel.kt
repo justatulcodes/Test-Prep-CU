@@ -157,6 +157,25 @@ class QuizViewModel(private val repository: QuizRepository) : ViewModel() {
         repository.completeQuizAttempt()
         _uiState.value = QuizUiState.Completed
     }
+    
+    /**
+     * Handle back button press
+     * Returns true if should show results, false if should go to upload screen
+     */
+    fun handleBackPress(): Boolean {
+        val attempt = repository.getCurrentAttempt()
+        
+        // If no attempt or no answers, go back to upload
+        if (attempt == null || attempt.answers.isEmpty()) {
+            repository.reset()
+            return false
+        }
+        
+        // If user has attempted questions, complete quiz and show partial results
+        repository.completeQuizAttempt()
+        _uiState.value = QuizUiState.Completed
+        return true
+    }
 }
 
 /**

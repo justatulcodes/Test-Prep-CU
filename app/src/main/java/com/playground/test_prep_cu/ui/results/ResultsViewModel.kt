@@ -24,13 +24,14 @@ class ResultsViewModel(private val repository: QuizRepository) : ViewModel() {
         val attempt = repository.getCurrentAttempt()
         val metadata = repository.getQuizMetadata()
         
-        if (attempt == null || !attempt.isCompleted) {
-            _uiState.value = ResultsUiState.Error("No completed quiz found")
+        // Check if we have any attempt with answers (allow partial completion)
+        if (attempt == null || attempt.answers.isEmpty()) {
+            _uiState.value = ResultsUiState.Error("No quiz attempt found")
             return
         }
         
         val score = attempt.getScore()
-        val timeTaken = if (attempt.endTime != null) {
+        val timeTaken = if (attempt.endTime != null && attempt.endTime > 0) {
             (attempt.endTime - attempt.startTime) / 1000 // seconds
         } else 0L
         
