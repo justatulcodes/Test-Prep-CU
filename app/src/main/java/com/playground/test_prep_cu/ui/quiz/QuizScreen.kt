@@ -51,7 +51,8 @@ fun QuizScreen(
                         onOptionSelected = { viewModel.selectOption(it) },
                         onPrevious = { viewModel.previousQuestion() },
                         onNext = { viewModel.nextQuestion() },
-                        onSubmit = { viewModel.submitQuiz() }
+                        onSubmitAnswer = { viewModel.submitAnswer() },
+                        onSubmitQuiz = { viewModel.submitQuiz() }
                     )
                 }
                 
@@ -77,7 +78,8 @@ private fun QuestionContent(
     onOptionSelected: (Int) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmitAnswer: () -> Unit,
+    onSubmitQuiz: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -112,19 +114,54 @@ private fun QuestionContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Options
+        // Options with answer feedback
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             state.question.getOptions().forEach { option ->
-                OptionItem(
+                OptionItemWithFeedback(
                     option = option,
                     isSelected = state.selectedOption == option.index,
+                    isAnswerSubmitted = state.isAnswerSubmitted,
                     onSelect = { onOptionSelected(option.index) }
                 )
             }
         }
+        
+        // Feedback message after submission
+        if (state.isAnswerSubmitted && state.selectedOption != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            val isCorrect = state.selectedOption == state.question.correctOption
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isCorrect) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.errorContainer
+                    }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = if (isCorrect) {
+                        "✓ Correct! Well done!"
+                    } else {
+                        "✗ Incorrect. The correct answer is highlighted in green."
+                    },
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isCorrect) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Navigation buttons
         Row(
@@ -138,19 +175,31 @@ private fun QuestionContent(
                 Text("Previous")
             }
             
-            if (state.isLastQuestion) {
+            // Show Submit or Next/Submit Quiz based on state
+            if (!state.isAnswerSubmitted) {
+                // Show Submit Answer button
                 Button(
-                    onClick = onSubmit,
-                    enabled = state.canGoNext
+                    onClick = onSubmitAnswer,
+                    enabled = state.canSubmit
                 ) {
-                    Text("Submit Quiz")
+                    Text("Submit Answer")
                 }
             } else {
-                Button(
-                    onClick = onNext,
-                    enabled = state.canGoNext
-                ) {
-                    Text("Next")
+                // Show Next or Submit Quiz button
+                if (state.isLastQuestion) {
+                    Button(
+                        onClick = onSubmitQuiz,
+                        enabled = state.canGoNext
+                    ) {
+                        Text("Submit Quiz")
+                    }
+                } else {
+                    Button(
+                        onClick = onNext,
+                        enabled = state.canGoNext
+                    ) {
+                        Text("Next")
+                    }
                 }
             }
         }
@@ -158,24 +207,40 @@ private fun QuestionContent(
 }
 
 @Composable
-private fun OptionItem(
+private fun OptionItemWithFeedback(
     option: com.playground.test_prep_cu.data.model.QuizOption,
     isSelected: Boolean,
+    isAnswerSubmitted: Boolean,
     onSelect: () -> Unit
 ) {
+    // Determine colors based on submission state
+    val backgroundColor = when {
+        isAnswerSubmitted && option.isCorrect -> MaterialTheme.colorScheme.primaryContainer
+        isAnswerSubmitted && isSelected && !option.isCorrect -> MaterialTheme.colorScheme.errorContainer
+        isSelected && !isAnswerSubmitted -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.surface
+    }
+    
+    val borderColor = when {
+        isAnswerSubmitted && option.isCorrect -> MaterialTheme.colorScheme.primary
+        isAnswerSubmitted && isSelected && !option.isCorrect -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outline
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .selectable(
                 selected = isSelected,
-                onClick = onSelect
+                onClick = { if (!isAnswerSubmitted) onSelect() },
+                enabled = !isAnswerSubmitted
             ),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
+            containerColor = backgroundColor
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isAnswerSubmitted && (option.isCorrect || isSelected)) 2.dp else 1.dp,
+            color = borderColor
         )
     ) {
         Row(
@@ -184,11 +249,38 @@ private fun OptionItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RadioButton(
-                selected = isSelected,
-                onClick = onSelect
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            if (!isAnswerSubmitted) {
+                // Show radio button before submission
+                RadioButton(
+                    selected = isSelected,
+                    onClick = onSelect,
+                    enabled = !isAnswerSubmitted
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            } else {
+                // Show icon after submission
+                val icon = when {
+                    option.isCorrect -> "✓"
+                    isSelected && !option.isCorrect -> "✗"
+                    else -> ""
+                }
+                
+                if (icon.isNotEmpty()) {
+                    Text(
+                        text = icon,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = if (option.isCorrect) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
+                        modifier = Modifier.width(40.dp)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.width(40.dp))
+                }
+            }
+            
             Text(
                 text = option.text,
                 style = MaterialTheme.typography.bodyMedium

@@ -20,6 +20,7 @@ class QuizViewModel(private val repository: QuizRepository) : ViewModel() {
     
     private var allQuestions: List<Question> = emptyList()
     private var selectedOption: Int? = null
+    private var isAnswerSubmitted = false
     
     init {
         loadQuiz()
@@ -53,15 +54,25 @@ class QuizViewModel(private val repository: QuizRepository) : ViewModel() {
         
         val question = allQuestions[currentIndex]
         val previousAnswer = attempt.answers.find { it.questionId == question.id }
-        selectedOption = previousAnswer?.selectedOption
+        
+        // If question was already answered, show it as submitted
+        if (previousAnswer != null) {
+            selectedOption = previousAnswer.selectedOption
+            isAnswerSubmitted = true
+        } else {
+            selectedOption = null
+            isAnswerSubmitted = false
+        }
         
         _uiState.value = QuizUiState.QuestionState(
             question = question,
             questionNumber = currentIndex + 1,
             totalQuestions = allQuestions.size,
             selectedOption = selectedOption,
+            isAnswerSubmitted = isAnswerSubmitted,
             canGoPrevious = currentIndex > 0,
-            canGoNext = selectedOption != null,
+            canSubmit = selectedOption != null && !isAnswerSubmitted,
+            canGoNext = isAnswerSubmitted,
             isLastQuestion = currentIndex == allQuestions.size - 1
         )
     }
@@ -70,29 +81,34 @@ class QuizViewModel(private val repository: QuizRepository) : ViewModel() {
      * Select an option for current question
      */
     fun selectOption(optionIndex: Int) {
+        if (isAnswerSubmitted) return // Don't allow changing after submit
+        
         selectedOption = optionIndex
         
         val currentState = _uiState.value
         if (currentState is QuizUiState.QuestionState) {
             _uiState.value = currentState.copy(
                 selectedOption = optionIndex,
-                canGoNext = true
+                canSubmit = true
             )
         }
     }
     
     /**
-     * Submit current answer and move to next question
+     * Submit the current answer and show correct answer
      */
-    fun nextQuestion() {
+    fun submitAnswer() {
         val currentState = _uiState.value
-        if (currentState !is QuizUiState.QuestionState || selectedOption == null) return
+        if (currentState !is QuizUiState.QuestionState || selectedOption == null || isAnswerSubmitted) return
         
-        // Submit answer
+        // Mark as submitted
+        isAnswerSubmitted = true
+        
         val question = currentState.question
         val isCorrect = selectedOption == question.correctOption
         val marksEarned = if (isCorrect) question.marks else 0.0
         
+        // Save answer to repository
         repository.submitAnswer(
             questionId = question.id,
             selectedOption = selectedOption!!,
@@ -100,9 +116,23 @@ class QuizViewModel(private val repository: QuizRepository) : ViewModel() {
             marksEarned = marksEarned
         )
         
-        // Move to next question
+        // Update UI to show answer feedback
+        _uiState.value = currentState.copy(
+            isAnswerSubmitted = true,
+            canSubmit = false,
+            canGoNext = true
+        )
+    }
+    
+    /**
+     * Move to next question
+     */
+    fun nextQuestion() {
+        if (!isAnswerSubmitted) return // Must submit before next
+        
         repository.moveToNextQuestion()
         selectedOption = null
+        isAnswerSubmitted = false
         
         updateCurrentQuestion()
     }
@@ -119,19 +149,9 @@ class QuizViewModel(private val repository: QuizRepository) : ViewModel() {
      * Submit the entire quiz
      */
     fun submitQuiz() {
-        // Submit current answer if any
-        val currentState = _uiState.value
-        if (currentState is QuizUiState.QuestionState && selectedOption != null) {
-            val question = currentState.question
-            val isCorrect = selectedOption == question.correctOption
-            val marksEarned = if (isCorrect) question.marks else 0.0
-            
-            repository.submitAnswer(
-                questionId = question.id,
-                selectedOption = selectedOption!!,
-                isCorrect = isCorrect,
-                marksEarned = marksEarned
-            )
+        // If current answer not submitted yet, submit it first
+        if (!isAnswerSubmitted && selectedOption != null) {
+            submitAnswer()
         }
         
         repository.completeQuizAttempt()
@@ -149,7 +169,9 @@ sealed class QuizUiState {
         val questionNumber: Int,
         val totalQuestions: Int,
         val selectedOption: Int?,
+        val isAnswerSubmitted: Boolean,
         val canGoPrevious: Boolean,
+        val canSubmit: Boolean,
         val canGoNext: Boolean,
         val isLastQuestion: Boolean
     ) : QuizUiState()
