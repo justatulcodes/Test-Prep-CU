@@ -30,7 +30,8 @@ class ResultsViewModel(private val repository: QuizRepository) : ViewModel() {
             return
         }
         
-        val score = attempt.getScore()
+        // Pass total questions from metadata to get proper score calculation
+        val score = attempt.getScore(metadata.totalQuestions)
         val timeTaken = if (attempt.endTime != null && attempt.endTime > 0) {
             (attempt.endTime - attempt.startTime) / 1000 // seconds
         } else 0L

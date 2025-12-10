@@ -105,17 +105,28 @@ data class QuizAttempt(
     val answers: List<UserAnswer>,
     val isCompleted: Boolean
 ) {
-    fun getScore(): QuizScore {
+    fun getScore(totalQuestionsInQuiz: Int = answers.size): QuizScore {
         val correct = answers.count { it.isCorrect }
         val incorrect = answers.count { !it.isCorrect }
         val totalMarks = answers.sumOf { it.marksEarned }
-        
+        val attemptedQuestions = answers.size
+        val skippedQuestions = totalQuestionsInQuiz - attemptedQuestions
+
+        // Calculate percentage based on attempted questions only for partial attempts
+        val percentageOfAttempted = if (attemptedQuestions > 0) (correct.toDouble() / attemptedQuestions * 100) else 0.0
+        // Calculate percentage based on total questions for overall score
+        val percentageOfTotal = if (totalQuestionsInQuiz > 0) (correct.toDouble() / totalQuestionsInQuiz * 100) else 0.0
+
         return QuizScore(
             correct = correct,
             incorrect = incorrect,
-            totalQuestions = answers.size,
+            totalQuestions = attemptedQuestions,
+            totalQuestionsInQuiz = totalQuestionsInQuiz,
+            skippedQuestions = skippedQuestions,
             totalMarksEarned = totalMarks,
-            percentage = if (answers.isNotEmpty()) (correct.toDouble() / answers.size * 100) else 0.0
+            percentage = percentageOfAttempted,
+            overallPercentage = percentageOfTotal,
+            isPartialAttempt = attemptedQuestions < totalQuestionsInQuiz
         )
     }
 }
@@ -126,7 +137,11 @@ data class QuizAttempt(
 data class QuizScore(
     val correct: Int,
     val incorrect: Int,
-    val totalQuestions: Int,
+    val totalQuestions: Int, // Questions attempted
     val totalMarksEarned: Double,
-    val percentage: Double
+    val percentage: Double, // Percentage of attempted questions
+    val totalQuestionsInQuiz: Int = totalQuestions, // Total questions in the quiz
+    val skippedQuestions: Int = 0,
+    val overallPercentage: Double = percentage, // Percentage based on total questions
+    val isPartialAttempt: Boolean = false
 )

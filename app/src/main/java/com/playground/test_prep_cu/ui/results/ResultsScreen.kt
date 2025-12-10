@@ -81,12 +81,29 @@ private fun ResultsContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Title
+        // Title with partial attempt indicator
         Text(
-            text = "Quiz Completed!",
+            text = if (state.score.isPartialAttempt) "Quiz Partially Completed" else "Quiz Completed!",
             style = MaterialTheme.typography.headlineMedium
         )
         
+        // Partial attempt warning
+        if (state.score.isPartialAttempt) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Text(
+                    text = "⚠️ This is a partial attempt. You attempted ${state.score.totalQuestions} out of ${state.score.totalQuestionsInQuiz} questions.",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+
         // Score Card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -144,18 +161,49 @@ private fun ResultsContent(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                MetricRow("Questions Attempted", state.score.totalQuestions.toString())
+                // Attempt Summary
+                Text(
+                    text = "Attempt Summary",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                MetricRow("Questions Attempted", "${state.score.totalQuestions} / ${state.score.totalQuestionsInQuiz}")
                 MetricRow("Correct Answers", state.score.correct.toString())
                 MetricRow("Incorrect Answers", state.score.incorrect.toString())
+                if (state.score.isPartialAttempt) {
+                    MetricRow("Skipped Questions", state.score.skippedQuestions.toString())
+                }
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                // Performance Analysis
+                Text(
+                    text = "Performance Analysis",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                MetricRow("Accuracy Rate", String.format("%.1f%%", state.score.percentage))
+                if (state.score.isPartialAttempt) {
+                    MetricRow("Overall Score", String.format("%.1f%%", state.score.overallPercentage))
+                }
                 MetricRow("Pass Percentage", "60%") // Typical passing grade
-                MetricRow("Your Percentage", String.format("%.1f%%", state.score.percentage))
-                val passed = state.score.percentage >= 60
+
+                // Status based on attempted questions for partial attempts, overall for complete attempts
+                val relevantPercentage = if (state.score.isPartialAttempt) state.score.percentage else state.score.overallPercentage
+                val passed = relevantPercentage >= 60
                 MetricRow(
                     "Status", 
-                    if (passed) "✓ Passed" else "✗ Failed"
+                    if (passed) "✓ ${if (state.score.isPartialAttempt) "Good Performance" else "Passed"}" else "✗ ${if (state.score.isPartialAttempt) "Needs Improvement" else "Failed"}"
                 )
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                // Additional Details
+                Text(
+                    text = "Additional Details",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 MetricRow("Total Marks Earned", String.format("%.1f / %d", state.score.totalMarksEarned, state.totalMarks))
                 MetricRow("Time Taken", formatTime(state.timeTaken))
             }
