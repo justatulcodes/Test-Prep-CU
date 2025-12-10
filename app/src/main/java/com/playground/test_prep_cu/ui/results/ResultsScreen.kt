@@ -153,59 +153,61 @@ private fun ResultsContent(
             }
         }
         
-        // Performance Metrics
+        // Performance Metrics 2x2 Grid
         Card(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Attempt Summary
                 Text(
-                    text = "Attempt Summary",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    text = "Performance Summary",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
-                MetricRow("Questions Attempted", "${state.score.totalQuestions} / ${state.score.totalQuestionsInQuiz}")
-                MetricRow("Correct Answers", state.score.correct.toString())
-                MetricRow("Incorrect Answers", state.score.incorrect.toString())
-                if (state.score.isPartialAttempt) {
-                    MetricRow("Skipped Questions", state.score.skippedQuestions.toString())
+                
+                // Row 1: Attempted & Accuracy
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    BigStatItem(
+                        label = "Attempted", 
+                        value = "${state.score.totalQuestions} / ${state.score.totalQuestionsInQuiz}",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    BigStatItem(
+                        label = "Accuracy", 
+                        value = "${String.format("%.0f", state.score.percentage)}%",
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                // Performance Analysis
-                Text(
-                    text = "Performance Analysis",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                MetricRow("Accuracy Rate", String.format("%.1f%%", state.score.percentage))
-                if (state.score.isPartialAttempt) {
-                    MetricRow("Overall Score", String.format("%.1f%%", state.score.overallPercentage))
+                
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                
+                // Row 2: Correct & Incorrect
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    BigStatItem(
+                        label = "Correct", 
+                        value = "${state.score.correct}",
+                        color = MaterialTheme.colorScheme.primary // Or a specific green/success color if available, sticking to primary/theme
+                    )
+                    BigStatItem(
+                        label = "Incorrect", 
+                        value = "${state.score.incorrect}",
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
-                MetricRow("Pass Percentage", "60%") // Typical passing grade
-
-                // Status based on attempted questions for partial attempts, overall for complete attempts
-                val relevantPercentage = if (state.score.isPartialAttempt) state.score.percentage else state.score.overallPercentage
-                val passed = relevantPercentage >= 60
-                MetricRow(
-                    "Status", 
-                    if (passed) "✓ ${if (state.score.isPartialAttempt) "Good Performance" else "Passed"}" else "✗ ${if (state.score.isPartialAttempt) "Needs Improvement" else "Failed"}"
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                // Additional Details
-                Text(
-                    text = "Additional Details",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                MetricRow("Total Marks Earned", String.format("%.1f / %d", state.score.totalMarksEarned, state.totalMarks))
-                MetricRow("Time Taken", formatTime(state.timeTaken))
             }
         }
         
@@ -233,19 +235,23 @@ private fun ResultsContent(
 }
 
 @Composable
-private fun MetricRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+private fun BigStatItem(label: String, value: String, color: androidx.compose.ui.graphics.Color) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.width(120.dp) // Fixed width for alignment
     ) {
         Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium
+            text = value,
+            style = MaterialTheme.typography.headlineMedium,
+            color = color,
+            textAlign = TextAlign.Center
         )
         Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
     }
 }

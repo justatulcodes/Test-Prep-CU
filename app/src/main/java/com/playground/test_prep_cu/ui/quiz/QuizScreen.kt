@@ -178,7 +178,7 @@ private fun QuestionContent(
                     text = if (isCorrect) {
                         "✓ Correct! Well done!"
                     } else {
-                        "✗ Incorrect. The correct answer is highlighted in green."
+                        "✗ Incorrect. The correct answer is highlighted."
                     },
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
