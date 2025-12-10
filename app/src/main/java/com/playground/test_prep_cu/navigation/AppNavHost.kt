@@ -1,6 +1,9 @@
 package com.playground.test_prep_cu.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,7 +32,14 @@ fun AppNavHost(
         startDestination = Screen.Upload.route
     ) {
         composable(Screen.Upload.route) {
-            val viewModel = UploadViewModel(repository, preferences)
+            val viewModel: UploadViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        return UploadViewModel(repository, preferences) as T
+                    }
+                }
+            )
             UploadScreen(
                 viewModel = viewModel,
                 onQuizLoaded = {
@@ -41,7 +51,14 @@ fun AppNavHost(
         }
         
         composable(Screen.Quiz.route) {
-            val viewModel = QuizViewModel(repository)
+            val viewModel: QuizViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        return QuizViewModel(repository) as T
+                    }
+                }
+            )
             QuizScreen(
                 viewModel = viewModel,
                 onQuizCompleted = {
@@ -58,7 +75,14 @@ fun AppNavHost(
         }
         
         composable(Screen.Results.route) {
-            val viewModel = ResultsViewModel(repository)
+            val viewModel: ResultsViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        return ResultsViewModel(repository) as T
+                    }
+                }
+            )
             ResultsScreen(
                 viewModel = viewModel,
                 onReviewAnswers = {
@@ -78,7 +102,14 @@ fun AppNavHost(
         }
         
         composable(Screen.Review.route) {
-            val viewModel = ReviewViewModel(repository)
+            val viewModel: ReviewViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        return ReviewViewModel(repository) as T
+                    }
+                }
+            )
             ReviewScreen(
                 viewModel = viewModel,
                 onBack = {
