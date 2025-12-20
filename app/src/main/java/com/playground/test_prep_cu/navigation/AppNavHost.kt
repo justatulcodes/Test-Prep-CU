@@ -9,6 +9,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.playground.test_prep_cu.data.preferences.QuizPreferences
 import com.playground.test_prep_cu.data.repository.QuizRepository
+import com.playground.test_prep_cu.ui.invigilator.InvigilatorScreen
+import com.playground.test_prep_cu.ui.invigilator.InvigilatorViewModel
 import com.playground.test_prep_cu.ui.quiz.QuizScreen
 import com.playground.test_prep_cu.ui.quiz.QuizViewModel
 import com.playground.test_prep_cu.ui.results.ResultsScreen
@@ -46,6 +48,9 @@ fun AppNavHost(
                     navController.navigate(Screen.Quiz.route) {
                         popUpTo(Screen.Upload.route) { inclusive = true }
                     }
+                },
+                onInvigilatorMode = {
+                    navController.navigate(Screen.Invigilator.route)
                 }
             )
         }
@@ -111,6 +116,23 @@ fun AppNavHost(
                 }
             )
             ReviewScreen(
+                viewModel = viewModel,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Invigilator.route) {
+            val viewModel: InvigilatorViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        return InvigilatorViewModel(repository) as T
+                    }
+                }
+            )
+            InvigilatorScreen(
                 viewModel = viewModel,
                 onBack = {
                     navController.popBackStack()

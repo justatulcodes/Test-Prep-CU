@@ -27,7 +27,8 @@ import java.util.*
 @Composable
 fun UploadScreen(
     viewModel: UploadViewModel,
-    onQuizLoaded: () -> Unit
+    onQuizLoaded: () -> Unit,
+    onInvigilatorMode: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -80,6 +81,7 @@ fun UploadScreen(
                     SuccessContent(
                         state = state,
                         onStartQuiz = onQuizLoaded,
+                        onInvigilatorMode = onInvigilatorMode,
                         recentFiles = state.recentFiles,
                         onRecentFileClick = { file ->
                             viewModel.loadQuizFile(Uri.parse(file.uri), context, file.fileName)
@@ -174,10 +176,13 @@ private fun InitialContent(
 private fun SuccessContent(
     state: UploadUiState.Success,
     onStartQuiz: () -> Unit,
+    onInvigilatorMode: () -> Unit,
     recentFiles: List<RecentFile>,
     onRecentFileClick: (RecentFile) -> Unit,
     onRemoveFile: (String) -> Unit
 ) {
+    var isInvigilatorMode by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -201,12 +206,54 @@ private fun SuccessContent(
             }
         }
         
+        // Invigilator mode toggle
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isInvigilatorMode) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                }
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Invigilator Mode",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Quick search questions & view correct answers",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = isInvigilatorMode,
+                    onCheckedChange = { isInvigilatorMode = it }
+                )
+            }
+        }
+
         Button(
-            onClick = onStartQuiz,
+            onClick = {
+                if (isInvigilatorMode) {
+                    onInvigilatorMode()
+                } else {
+                    onStartQuiz()
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
         ) {
-            Text("Start Quiz")
+            Text(if (isInvigilatorMode) "Open Invigilator View" else "Start Quiz")
         }
         
         // Show other recent files
